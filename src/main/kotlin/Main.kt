@@ -13,10 +13,10 @@ import llm.core.LanguageModelFactory
 import llm.core.model.ChatRole
 
 private const val CONFIG_FILE = "config/app.properties"
-private val MAX_HISTORY_FILE = Path.of("config/conversations/max_history.json")
+private val CONTEXT_OVERFLOW_PRESET_FILE = Path.of("config/conversations/context_overflow_preset.json")
 private const val MODELS_COMMAND = "models"
 private const val USE_COMMAND = "use"
-private const val LOAD_MAX_HISTORY_COMMAND = "load max_history"
+private const val LOAD_OVERFLOW_PRESET_COMMAND = "load overflow_preset"
 
 private val consoleReader = BufferedReader(
     InputStreamReader(System.`in`, detectConsoleCharset())
@@ -37,7 +37,7 @@ fun main() {
     println(
         "Для просмотра моделей введите '$MODELS_COMMAND'. " +
             "Для переключения модели введите '$USE_COMMAND <id>'. " +
-            "Для загрузки max_history введите '$LOAD_MAX_HISTORY_COMMAND'."
+            "Для загрузки пресета переполнения введите '$LOAD_OVERFLOW_PRESET_COMMAND'."
     )
     printCurrentModelInfo(agent)
 
@@ -60,12 +60,12 @@ fun main() {
             continue
         }
 
-        if (prompt.equals(LOAD_MAX_HISTORY_COMMAND, ignoreCase = true)) {
+        if (prompt.equals(LOAD_OVERFLOW_PRESET_COMMAND, ignoreCase = true)) {
             try {
-                agent.replaceContextFromFile(MAX_HISTORY_FILE)
-                println("История текущей модели заменена содержимым max_history.json.")
+                agent.replaceContextFromFile(CONTEXT_OVERFLOW_PRESET_FILE)
+                println("История текущей модели заменена содержимым context_overflow_preset.json.")
             } catch (error: Exception) {
-                println("Не удалось загрузить max_history.json: ${error.message}")
+                println("Не удалось загрузить context_overflow_preset.json: ${error.message}")
             }
             continue
         }
