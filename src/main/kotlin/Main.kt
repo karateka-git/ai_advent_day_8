@@ -65,6 +65,14 @@ fun main() {
             }
 
             println("${ChatRole.ASSISTANT.displayName}: $content")
+            agent.lastUserPromptTokens?.let { currentMessageTokens ->
+                println("Токены текущего сообщения (локально): $currentMessageTokens")
+            }
+            agent.lastTokenUsage?.let { usage ->
+                println(
+                    "Токены: запрос=${usage.promptTokens}, ответ=${usage.completionTokens}, всего=${usage.totalTokens}"
+                )
+            }
         } catch (error: Exception) {
             println("Не удалось выполнить запрос: ${error.message}")
         }

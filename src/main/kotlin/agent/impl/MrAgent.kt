@@ -7,6 +7,7 @@ import agent.format.TextResponseFormat
 import agent.storage.JsonConversationStore
 import agent.storage.mapper.ChatMessageConversationMapper
 import llm.core.LanguageModel
+import llm.core.TokenUsage
 import llm.model.ChatMessage
 import llm.model.ChatRole
 
@@ -20,6 +21,10 @@ class MrAgent(
     private val conversationStore = JsonConversationStore(java.nio.file.Path.of(DEFAULT_CONTEXT_FILE))
 
     override val responseFormat: ResponseFormat<String> = TextResponseFormat
+    override var lastUserPromptTokens: Int? = null
+        private set
+    override var lastTokenUsage: TokenUsage? = null
+        private set
 
     private val conversation = loadConversation().toMutableList()
 
@@ -30,20 +35,24 @@ class MrAgent(
     )
 
     override fun ask(userPrompt: String): String {
+        lastUserPromptTokens = languageModel.tokenCounter?.countText(userPrompt)
         conversation += ChatMessage(role = ChatRole.USER, content = userPrompt)
         saveConversation()
 
-        val rawContent = languageModel.complete(conversation)
+        val modelResponse = languageModel.complete(conversation)
+        lastTokenUsage = modelResponse.usage
 
-        conversation += ChatMessage(role = ChatRole.ASSISTANT, content = rawContent)
+        conversation += ChatMessage(role = ChatRole.ASSISTANT, content = modelResponse.content)
         saveConversation()
 
-        return responseFormat.parse(rawContent)
+        return responseFormat.parse(modelResponse.content)
     }
 
     override fun clearContext() {
         conversation.clear()
         conversation += createSystemMessage()
+        lastUserPromptTokens = null
+        lastTokenUsage = null
         saveConversation()
     }
 

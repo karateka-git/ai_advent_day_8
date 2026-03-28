@@ -11,7 +11,9 @@ repositories {
 }
 
 dependencies {
+    implementation("ai.djl.huggingface:tokenizers:0.33.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+    runtimeOnly("org.slf4j:slf4j-nop:2.0.17")
     testImplementation(kotlin("test"))
 }
 

@@ -8,7 +8,11 @@ import java.nio.charset.StandardCharsets
 import kotlinx.serialization.json.Json
 import llm.core.LanguageModel
 import llm.core.LanguageModelInfo
+import llm.core.LanguageModelResponse
 import llm.model.ChatMessage
+import llm.tokenizer.DeepSeekLocalTokenCounter
+import llm.tokenizer.TokenCounter
+import llm.timeweb.mapper.ChatCompletionResponseMapper
 import llm.timeweb.model.ChatCompletionRequest
 import llm.timeweb.model.ChatCompletionResponse
 
@@ -24,13 +28,15 @@ class TimewebLanguageModel(
     private val userToken: String
 ) : LanguageModel {
     private val json = Json { ignoreUnknownKeys = true }
+    private val responseMapper = ChatCompletionResponseMapper()
 
     override val info = LanguageModelInfo(
         name = "TimewebLanguageModel",
         model = MODEL
     )
+    override val tokenCounter: TokenCounter = DeepSeekLocalTokenCounter()
 
-    override fun complete(messages: List<ChatMessage>): String {
+    override fun complete(messages: List<ChatMessage>): LanguageModelResponse {
         val requestBody = json.encodeToString(
             ChatCompletionRequest(
                 model = MODEL,
@@ -54,7 +60,6 @@ class TimewebLanguageModel(
         }
 
         val completion = json.decodeFromString<ChatCompletionResponse>(response.body())
-        return completion.choices.firstOrNull()?.message?.content
-            ?: error("Ответ API не содержит choices[0].message.content")
+        return responseMapper.toLanguageModelResponse(completion)
     }
 }
