@@ -5,6 +5,9 @@ import agent.storage.model.StoredMessage
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlinx.serialization.json.Json
+import llm.core.LanguageModel
+
+private const val CONTEXT_DIRECTORY = "config/conversations"
 
 class JsonConversationStore(
     private val storagePath: Path
@@ -37,5 +40,23 @@ class JsonConversationStore(
             storagePath,
             json.encodeToString(ConversationHistory(messages))
         )
+    }
+
+    companion object {
+        fun forLanguageModel(languageModel: LanguageModel): JsonConversationStore =
+            JsonConversationStore(buildStoragePath(languageModel))
+
+        internal fun buildStoragePath(languageModel: LanguageModel): Path {
+            val providerPart = sanitizePathPart(languageModel.info.name)
+            val modelPart = sanitizePathPart(languageModel.info.model)
+            return Path.of(CONTEXT_DIRECTORY, "${providerPart}__${modelPart}.json")
+        }
+
+        private fun sanitizePathPart(value: String): String =
+            value
+                .lowercase()
+                .replace(Regex("[^a-z0-9]+"), "_")
+                .trim('_')
+                .ifBlank { "default" }
     }
 }

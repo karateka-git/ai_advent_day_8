@@ -1,7 +1,7 @@
 package agent.storage.mapper
 
 import agent.storage.model.StoredMessage
-import llm.model.ChatMessage
+import llm.core.model.ChatMessage
 
 interface ConversationMapper {
     fun toStoredMessage(message: ChatMessage): StoredMessage

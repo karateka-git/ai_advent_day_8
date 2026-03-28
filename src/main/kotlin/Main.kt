@@ -9,31 +9,31 @@ import java.nio.file.Path
 import java.util.Properties
 import java.util.concurrent.atomic.AtomicBoolean
 import llm.core.LanguageModel
-import llm.model.ChatRole
-import llm.timeweb.TimewebLanguageModel
+import llm.core.LanguageModelFactory
+import llm.core.model.ChatRole
 
 private const val CONFIG_FILE = "config/app.properties"
+private const val MODELS_COMMAND = "models"
+private const val USE_COMMAND = "use"
 
 private val consoleReader = BufferedReader(
     InputStreamReader(System.`in`, detectConsoleCharset())
 )
 private val systemConsole = System.console()
+private val tokenStatsFormatter = ConsoleTokenStatsFormatter()
 
 fun main() {
     val config = loadConfig()
-    val languageModel: LanguageModel = TimewebLanguageModel(
-        httpClient = HttpClient.newHttpClient(),
-        agentId = config.getRequired("AGENT_ID"),
-        userToken = config.getRequired("USER_TOKEN")
+    val httpClient = HttpClient.newHttpClient()
+    var languageModel: LanguageModel = LanguageModelFactory.createDefault(
+        config = config,
+        httpClient = httpClient
     )
-    val agent: Agent<String> = MrAgent(
-        languageModel = languageModel
-    )
+    var agent: Agent<String> = MrAgent(languageModel = languageModel)
 
     println("Чат готов. Введите 'exit' или 'quit', чтобы завершить работу.")
-    println("Агент: ${agent.info.name}")
-    println("Описание: ${agent.info.description}")
-    println("Модель: ${agent.info.model}")
+    println("Для просмотра моделей введите '$MODELS_COMMAND'. Для переключения модели введите '$USE_COMMAND <id>'.")
+    printCurrentModelInfo(agent)
 
     while (true) {
         print("${ChatRole.USER.displayName}: ")
@@ -54,30 +54,86 @@ fun main() {
             continue
         }
 
+        if (prompt.equals(MODELS_COMMAND, ignoreCase = true)) {
+            println(formatModels(config, languageModel))
+            continue
+        }
+
+        if (prompt.startsWith("$USE_COMMAND ", ignoreCase = true)) {
+            val requestedModelId = prompt.substringAfter(' ').trim()
+            try {
+                languageModel = LanguageModelFactory.create(
+                    modelId = requestedModelId,
+                    config = config,
+                    httpClient = httpClient
+                )
+                agent = MrAgent(languageModel = languageModel)
+                println("Текущая модель изменена.")
+                printCurrentModelInfo(agent)
+            } catch (error: Exception) {
+                println("Не удалось переключить модель: ${error.message}")
+            }
+            continue
+        }
+
         try {
+            tokenStatsFormatter.formatPreview(agent.previewTokenStats(prompt))?.let { preview ->
+                println()
+                println(preview)
+                println()
+            }
+
             val loading = LoadingIndicator()
             loading.start()
 
-            val content = try {
+            val response = try {
                 agent.ask(prompt)
             } finally {
                 loading.stop()
             }
 
-            println("${ChatRole.ASSISTANT.displayName}: $content")
-            agent.lastUserPromptTokens?.let { currentMessageTokens ->
-                println("Токены текущего сообщения (локально): $currentMessageTokens")
+            println()
+            println("${ChatRole.ASSISTANT.displayName}: ${response.content}")
+            tokenStatsFormatter.formatResponse(response.tokenStats)?.let {
+                println()
+                println(it)
             }
-            agent.lastTokenUsage?.let { usage ->
-                println(
-                    "Токены: запрос=${usage.promptTokens}, ответ=${usage.completionTokens}, всего=${usage.totalTokens}"
-                )
-            }
+            println()
         } catch (error: Exception) {
             println("Не удалось выполнить запрос: ${error.message}")
         }
     }
 }
+
+private fun printCurrentModelInfo(agent: Agent<String>) {
+    println("Агент: ${agent.info.name}")
+    println("Описание: ${agent.info.description}")
+    println("Модель: ${agent.info.model}")
+}
+
+private fun formatModels(config: Properties, currentModel: LanguageModel): String =
+    buildString {
+        appendLine("Доступные модели:")
+        LanguageModelFactory.availableModels(config).forEach { option ->
+            val marker = if (option.id == currentModelId(currentModel)) "*" else " "
+            append(marker)
+            append(" ")
+            append(option.id)
+            append(" — ")
+            append(option.displayName)
+            if (!option.isConfigured) {
+                append(" (недоступна: ${option.unavailableReason})")
+            }
+            appendLine()
+        }
+    }.trimEnd()
+
+private fun currentModelId(languageModel: LanguageModel): String =
+    when (languageModel.info.name) {
+        "TimewebLanguageModel" -> "timeweb"
+        "HuggingFaceLanguageModel" -> "huggingface"
+        else -> languageModel.info.name.lowercase()
+    }
 
 private fun detectConsoleCharset(): Charset {
     val nativeEncoding = System.getProperty("native.encoding")
@@ -100,10 +156,6 @@ private fun loadConfig(): Properties {
         Files.newInputStream(configPath).use(::load)
     }
 }
-
-private fun Properties.getRequired(key: String): String =
-    getProperty(key)?.takeIf { it.isNotBlank() }
-        ?: throw IllegalArgumentException("В $CONFIG_FILE отсутствует обязательное свойство '$key'.")
 
 private class LoadingIndicator {
     private val running = AtomicBoolean(false)

@@ -7,17 +7,16 @@ import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
 import kotlinx.serialization.json.Json
 import llm.core.LanguageModel
-import llm.core.LanguageModelInfo
-import llm.core.LanguageModelResponse
-import llm.model.ChatMessage
-import llm.tokenizer.DeepSeekLocalTokenCounter
-import llm.tokenizer.TokenCounter
+import llm.core.model.ChatMessage
+import llm.core.tokenizer.TokenCounter
+import llm.core.model.LanguageModelInfo
+import llm.core.model.LanguageModelResponse
 import llm.timeweb.mapper.ChatCompletionResponseMapper
 import llm.timeweb.model.ChatCompletionRequest
 import llm.timeweb.model.ChatCompletionResponse
+import llm.timeweb.tokenizer.DeepSeekLocalTokenCounter
 
 private const val MODEL = "DeepSeek V3.2"
-private const val MAX_TOKENS = 400
 private const val TEMPERATURE = 0.7
 private const val API_URL_TEMPLATE =
     "https://agent.timeweb.cloud/api/v1/cloud-ai/agents/%s/v1/chat/completions"
@@ -41,8 +40,7 @@ class TimewebLanguageModel(
             ChatCompletionRequest(
                 model = MODEL,
                 messages = messages,
-                temperature = TEMPERATURE,
-                maxTokens = MAX_TOKENS
+                temperature = TEMPERATURE
             )
         )
 

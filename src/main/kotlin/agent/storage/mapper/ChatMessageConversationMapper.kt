@@ -1,8 +1,8 @@
 package agent.storage.mapper
 
 import agent.storage.model.StoredMessage
-import llm.model.ChatMessage
-import llm.model.ChatRole
+import llm.core.model.ChatMessage
+import llm.core.model.ChatRole
 
 class ChatMessageConversationMapper : ConversationMapper {
     override fun toStoredMessage(message: ChatMessage): StoredMessage =

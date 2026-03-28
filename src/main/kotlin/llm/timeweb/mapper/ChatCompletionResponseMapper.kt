@@ -1,7 +1,7 @@
 package llm.timeweb.mapper
 
-import llm.core.LanguageModelResponse
-import llm.core.TokenUsage
+import llm.core.model.LanguageModelResponse
+import llm.core.model.TokenUsage
 import llm.timeweb.model.ChatCompletionResponse
 
 class ChatCompletionResponseMapper {

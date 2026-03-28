@@ -1,7 +1,9 @@
 package llm.core
 
-import llm.model.ChatMessage
-import llm.tokenizer.TokenCounter
+import llm.core.model.ChatMessage
+import llm.core.model.LanguageModelInfo
+import llm.core.model.LanguageModelResponse
+import llm.core.tokenizer.TokenCounter
 
 interface LanguageModel {
     val info: LanguageModelInfo

@@ -2,29 +2,24 @@ package agent.impl
 
 import agent.core.Agent
 import agent.core.AgentInfo
+import agent.core.AgentResponse
+import agent.core.AgentTokenStats
 import agent.format.ResponseFormat
 import agent.format.TextResponseFormat
 import agent.storage.JsonConversationStore
 import agent.storage.mapper.ChatMessageConversationMapper
 import llm.core.LanguageModel
-import llm.core.TokenUsage
-import llm.model.ChatMessage
-import llm.model.ChatRole
-
-private const val DEFAULT_CONTEXT_FILE = "config/conversation.json"
+import llm.core.model.ChatMessage
+import llm.core.model.ChatRole
 
 class MrAgent(
     private val languageModel: LanguageModel,
     private val systemPrompt: String = DEFAULT_SYSTEM_PROMPT
 ) : Agent<String> {
     private val conversationMapper = ChatMessageConversationMapper()
-    private val conversationStore = JsonConversationStore(java.nio.file.Path.of(DEFAULT_CONTEXT_FILE))
+    private val conversationStore = JsonConversationStore.forLanguageModel(languageModel)
 
     override val responseFormat: ResponseFormat<String> = TextResponseFormat
-    override var lastUserPromptTokens: Int? = null
-        private set
-    override var lastTokenUsage: TokenUsage? = null
-        private set
 
     private val conversation = loadConversation().toMutableList()
 
@@ -34,25 +29,44 @@ class MrAgent(
         model = languageModel.info.model
     )
 
-    override fun ask(userPrompt: String): String {
-        lastUserPromptTokens = languageModel.tokenCounter?.countText(userPrompt)
+    override fun previewTokenStats(userPrompt: String): AgentTokenStats {
+        val historyTokens = languageModel.tokenCounter?.countMessages(conversation)
+        val userPromptTokens = languageModel.tokenCounter?.countText(userPrompt)
+        val promptTokensLocal = languageModel.tokenCounter?.countMessages(
+            conversation + ChatMessage(role = ChatRole.USER, content = userPrompt)
+        )
+
+        return AgentTokenStats(
+            historyTokens = historyTokens,
+            promptTokensLocal = promptTokensLocal,
+            userPromptTokens = userPromptTokens
+        )
+    }
+
+    override fun ask(userPrompt: String): AgentResponse<String> {
+        val preview = previewTokenStats(userPrompt)
         conversation += ChatMessage(role = ChatRole.USER, content = userPrompt)
         saveConversation()
 
         val modelResponse = languageModel.complete(conversation)
-        lastTokenUsage = modelResponse.usage
 
         conversation += ChatMessage(role = ChatRole.ASSISTANT, content = modelResponse.content)
         saveConversation()
 
-        return responseFormat.parse(modelResponse.content)
+        return AgentResponse(
+            content = responseFormat.parse(modelResponse.content),
+            tokenStats = AgentTokenStats(
+                historyTokens = preview.historyTokens,
+                promptTokensLocal = preview.promptTokensLocal,
+                userPromptTokens = preview.userPromptTokens,
+                apiUsage = modelResponse.usage
+            )
+        )
     }
 
     override fun clearContext() {
         conversation.clear()
         conversation += createSystemMessage()
-        lastUserPromptTokens = null
-        lastTokenUsage = null
         saveConversation()
     }
 

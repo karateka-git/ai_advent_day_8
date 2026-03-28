@@ -21,6 +21,7 @@
 - `MrAgent` — агент, который реализует `Agent<String>`;
 - `LanguageModel` — общий интерфейс для разных LLM;
 - `TimewebLanguageModel` — текущая реализация языковой модели для Timeweb API;
+- `HuggingFaceLanguageModel` — реализация языковой модели для Hugging Face Inference API c моделью `Qwen/Qwen2.5-1.5B-Instruct`;
 - `ConversationStore` — общий контракт хранения истории диалога;
 - `JsonConversationStore` — JSON-реализация хранения контекста;
 - `ConversationMapper` — прослойка между хранилищем и рабочими сообщениями агента;
@@ -36,6 +37,7 @@
 - `src/main/kotlin/agent/storage/mapper` — мапперы между storage-моделями и сообщениями агента;
 - `src/main/kotlin/agent/storage/model` — модели для хранения истории;
 - `src/main/kotlin/llm/core` — общий интерфейс языковой модели;
+- `src/main/kotlin/llm/huggingface` — реализация `HuggingFaceLanguageModel`;
 - `src/main/kotlin/llm/model` — общие модели сообщений LLM;
 - `src/main/kotlin/llm/timeweb` — реализация `TimewebLanguageModel`;
 - `src/main/kotlin/llm/timeweb/model` — DTO для Timeweb API;
@@ -44,7 +46,16 @@
 ## Настройка
 
 1. Скопируйте `config/app.properties.example` в `config/app.properties`.
-2. Заполните `AGENT_ID` и `USER_TOKEN`.
+2. Для `timeweb` заполните `AGENT_ID` и `TIMEWEB_USER_TOKEN`.
+3. Для `huggingface` заполните `HF_API_TOKEN`.
+
+### Провайдеры
+
+- по умолчанию приложение выбирает первую доступную модель;
+- список доступных моделей можно посмотреть командой `models`;
+- переключить текущую модель можно командой `use <id>`;
+- сейчас доступны `timeweb` и `huggingface`;
+- параметры модели, провайдера и базового URL зашиты в коде реализации `HuggingFaceLanguageModel`.
 
 ## Сборка
 
@@ -71,7 +82,7 @@
 ## Сохранение контекста
 
 - история диалога сохраняется в JSON-файл;
-- по умолчанию используется `config/conversation.json`;
+- для каждой модели используется свой отдельный файл в `config/conversations/`;
 - store работает со своими моделями `StoredMessage`;
 - агент работает с `ChatMessage`;
 - переход между ними выполняется через mapper-слой.

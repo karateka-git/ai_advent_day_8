@@ -2,7 +2,7 @@ package llm.timeweb.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import llm.model.ChatMessage
+import llm.core.model.ChatMessage
 
 @Serializable
 data class ChatCompletionResponse(
