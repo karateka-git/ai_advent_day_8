@@ -36,9 +36,8 @@
 - `src/main/kotlin/agent/storage` — хранение контекста;
 - `src/main/kotlin/agent/storage/mapper` — мапперы между storage-моделями и сообщениями агента;
 - `src/main/kotlin/agent/storage/model` — модели для хранения истории;
-- `src/main/kotlin/llm/core` — общий интерфейс языковой модели;
+- `src/main/kotlin/llm/core` — общие контракты и модели языковой модели;
 - `src/main/kotlin/llm/huggingface` — реализация `HuggingFaceLanguageModel`;
-- `src/main/kotlin/llm/model` — общие модели сообщений LLM;
 - `src/main/kotlin/llm/timeweb` — реализация `TimewebLanguageModel`;
 - `src/main/kotlin/llm/timeweb/model` — DTO для Timeweb API;
 - `src/test/kotlin` — тесты.
@@ -77,12 +76,21 @@
 
 - вводите сообщения в консоли, чтобы продолжить диалог;
 - введите `clear`, чтобы очистить контекст и начать новый диалог, сохранив системное сообщение;
+- введите `models`, чтобы посмотреть список доступных моделей;
+- введите `use <id>`, чтобы переключить текущую модель;
+- введите `load overflow_preset`, чтобы заменить историю текущей модели содержимым `config/conversations/context_overflow_preset.json`;
 - введите `exit` или `quit`, чтобы завершить работу.
+
+## Токены
+
+- перед отправкой запроса CLI показывает локальную оценку токенов для текущего сообщения, истории и полного запроса;
+- после ответа модели CLI показывает фактические токены ответа, полученные от API, если провайдер их возвращает.
 
 ## Сохранение контекста
 
 - история диалога сохраняется в JSON-файл;
 - для каждой модели используется свой отдельный файл в `config/conversations/`;
+- в `config/conversations/context_overflow_preset.json` лежит пресет для тестирования переполнения окна контекста;
 - store работает со своими моделями `StoredMessage`;
 - агент работает с `ChatMessage`;
 - переход между ними выполняется через mapper-слой.
