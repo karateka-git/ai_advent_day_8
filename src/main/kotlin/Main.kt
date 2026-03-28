@@ -13,8 +13,10 @@ import llm.core.LanguageModelFactory
 import llm.core.model.ChatRole
 
 private const val CONFIG_FILE = "config/app.properties"
+private val MAX_HISTORY_FILE = Path.of("config/conversations/max_history.json")
 private const val MODELS_COMMAND = "models"
 private const val USE_COMMAND = "use"
+private const val LOAD_MAX_HISTORY_COMMAND = "load max_history"
 
 private val consoleReader = BufferedReader(
     InputStreamReader(System.`in`, detectConsoleCharset())
@@ -32,7 +34,11 @@ fun main() {
     var agent: Agent<String> = MrAgent(languageModel = languageModel)
 
     println("Чат готов. Введите 'exit' или 'quit', чтобы завершить работу.")
-    println("Для просмотра моделей введите '$MODELS_COMMAND'. Для переключения модели введите '$USE_COMMAND <id>'.")
+    println(
+        "Для просмотра моделей введите '$MODELS_COMMAND'. " +
+            "Для переключения модели введите '$USE_COMMAND <id>'. " +
+            "Для загрузки max_history введите '$LOAD_MAX_HISTORY_COMMAND'."
+    )
     printCurrentModelInfo(agent)
 
     while (true) {
@@ -51,6 +57,16 @@ fun main() {
         if (prompt.equals("clear", ignoreCase = true)) {
             agent.clearContext()
             println("Контекст очищен. Системное сообщение сохранено.")
+            continue
+        }
+
+        if (prompt.equals(LOAD_MAX_HISTORY_COMMAND, ignoreCase = true)) {
+            try {
+                agent.replaceContextFromFile(MAX_HISTORY_FILE)
+                println("История текущей модели заменена содержимым max_history.json.")
+            } catch (error: Exception) {
+                println("Не удалось загрузить max_history.json: ${error.message}")
+            }
             continue
         }
 

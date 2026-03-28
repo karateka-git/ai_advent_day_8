@@ -8,6 +8,7 @@ import agent.format.ResponseFormat
 import agent.format.TextResponseFormat
 import agent.storage.JsonConversationStore
 import agent.storage.mapper.ChatMessageConversationMapper
+import java.nio.file.Path
 import llm.core.LanguageModel
 import llm.core.model.ChatMessage
 import llm.core.model.ChatRole
@@ -67,6 +68,19 @@ class MrAgent(
     override fun clearContext() {
         conversation.clear()
         conversation += createSystemMessage()
+        saveConversation()
+    }
+
+    override fun replaceContextFromFile(sourcePath: Path) {
+        val importedMessages = JsonConversationStore(sourcePath).load()
+            .map(conversationMapper::fromStoredMessage)
+
+        require(importedMessages.isNotEmpty()) {
+            "Файл истории $sourcePath пустой или не содержит сообщений."
+        }
+
+        conversation.clear()
+        conversation += importedMessages
         saveConversation()
     }
 

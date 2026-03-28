@@ -1,6 +1,7 @@
 package agent.core
 
 import agent.format.ResponseFormat
+import java.nio.file.Path
 
 interface Agent<T> {
     val info: AgentInfo
@@ -11,4 +12,6 @@ interface Agent<T> {
     fun ask(userPrompt: String): AgentResponse<T>
 
     fun clearContext()
+
+    fun replaceContextFromFile(sourcePath: Path)
 }
